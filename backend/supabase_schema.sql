@@ -9,7 +9,6 @@ create table if not exists public.profiles (
   avatar_url text,
   notifications boolean not null default true,
   auto_download boolean not null default false,
-  openai_api_key text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );

@@ -73,7 +73,6 @@ class UserSettingsUpdateRequest(BaseModel):
     full_name: str | None = None
     notifications: bool | None = None
     auto_download: bool | None = None
-    openai_api_key: str | None = None
 
 
 class UserStoryCreateRequest(BaseModel):
@@ -158,7 +157,6 @@ def ensure_profile(user_id: str, user_email: str, user_metadata: dict[str, Any])
         "avatar_url": user_metadata.get("avatar_url"),
         "notifications": True,
         "auto_download": False,
-        "openai_api_key": None,
     }
     created = supabase_admin.table("profiles").insert(payload).execute()
     return created.data[0]
@@ -312,8 +310,6 @@ def update_settings(payload: UserSettingsUpdateRequest, current=Depends(get_curr
         update_data["notifications"] = payload.notifications
     if payload.auto_download is not None:
         update_data["auto_download"] = payload.auto_download
-    if payload.openai_api_key is not None:
-        update_data["openai_api_key"] = payload.openai_api_key
 
     if not update_data:
         return ensure_profile(user.id, user.email, user.user_metadata or {})
