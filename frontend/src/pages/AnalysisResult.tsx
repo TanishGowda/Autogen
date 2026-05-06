@@ -16,8 +16,39 @@ import {
   Code2,
 } from "lucide-react";
 import toast, { Toaster } from "react-hot-toast";
-import type { DiagramType, AnalysisResult as AnalysisResultType, Project } from "../types";
+import type {
+  DiagramType,
+  AnalysisResult as AnalysisResultType,
+  Project,
+  TestCase,
+} from "../types";
 import { apiRequest } from "../lib/api";
+
+function escapeCsvField(value: string | undefined | null): string {
+  const s = String(value ?? "");
+  if (/[",\r\n]/.test(s)) {
+    return `"${s.replace(/"/g, '""')}"`;
+  }
+  return s;
+}
+
+function downloadTestsAsCsv(tests: TestCase[], variant: "whitebox" | "blackbox"): void {
+  const header = ["Name", "Description", "Input", "Expected Output", "Code"];
+  const rows = tests.map((t) =>
+    [t.name, t.description, t.input, t.expected_output, t.code ?? ""].map(escapeCsvField).join(","),
+  );
+  const csv = [header.map(escapeCsvField).join(","), ...rows].join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download =
+    variant === "whitebox" ? "white-box-tests.csv" : "black-box-tests.csv";
+  document.body.appendChild(anchor);
+  anchor.click();
+  anchor.remove();
+  URL.revokeObjectURL(url);
+}
 
 const storyDiagramTabs: { key: DiagramType; label: string; icon: typeof Workflow }[] = [
   { key: "architecture", label: "Architecture", icon: Layers },
@@ -371,27 +402,44 @@ export default function AnalysisResult() {
               <TestTube2 className="w-5 h-5 text-primary-600" />
               <h2 className="text-lg font-semibold text-surface-900">Generated Test Cases</h2>
             </div>
-            <div className="flex items-center gap-1 p-1 bg-surface-100 rounded-lg">
+            <div className="flex items-center gap-2 shrink-0">
               <button
-                onClick={() => setActiveTestTab("whitebox")}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  activeTestTab === "whitebox"
-                    ? "bg-white text-primary-700 shadow-sm"
-                    : "text-surface-500 hover:text-surface-700"
-                }`}
+                type="button"
+                onClick={() =>
+                  downloadTestsAsCsv(
+                    activeTestTab === "whitebox"
+                      ? result.whitebox_tests
+                      : result.blackbox_tests,
+                    activeTestTab === "whitebox" ? "whitebox" : "blackbox",
+                  )
+                }
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium text-surface-600 bg-white border border-surface-200 hover:bg-surface-50 transition-colors"
               >
-                White-Box ({result.whitebox_tests.length})
+                <Download className="w-3.5 h-3.5" />
+                CSV
               </button>
-              <button
-                onClick={() => setActiveTestTab("blackbox")}
-                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
-                  activeTestTab === "blackbox"
-                    ? "bg-white text-primary-700 shadow-sm"
-                    : "text-surface-500 hover:text-surface-700"
-                }`}
-              >
-                Black-Box ({result.blackbox_tests.length})
-              </button>
+              <div className="flex items-center gap-1 p-1 bg-surface-100 rounded-lg">
+                <button
+                  onClick={() => setActiveTestTab("whitebox")}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTestTab === "whitebox"
+                      ? "bg-white text-primary-700 shadow-sm"
+                      : "text-surface-500 hover:text-surface-700"
+                  }`}
+                >
+                  White-Box ({result.whitebox_tests.length})
+                </button>
+                <button
+                  onClick={() => setActiveTestTab("blackbox")}
+                  className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    activeTestTab === "blackbox"
+                      ? "bg-white text-primary-700 shadow-sm"
+                      : "text-surface-500 hover:text-surface-700"
+                  }`}
+                >
+                  Black-Box ({result.blackbox_tests.length})
+                </button>
+              </div>
             </div>
           </div>
 
